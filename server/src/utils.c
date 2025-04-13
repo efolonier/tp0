@@ -5,35 +5,41 @@ t_log* logger;
 int iniciar_servidor(void)
 {
 	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
+	//assert(!"no implementado!");
 
 	int socket_servidor;
+	int err;
 
-	struct addrinfo hints, *servinfo, *p;
+	struct addrinfo hints, *server_info, *p;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+	err = getaddrinfo(NULL, PUERTO, &hints, &server_info);
 
 	// Creamos el socket de escucha del servidor
-
+		int fd_escucha = socket(
+		server_info->ai_family,
+        server_info->ai_socktype,
+        server_info->ai_protocol);
 	// Asociamos el socket a un puerto
-
+	err = bind(fd_escucha, server_info->ai_addr, server_info->ai_addrlen);
 	// Escuchamos las conexiones entrantes
 
-	freeaddrinfo(servinfo);
+	err = listen(fd_escucha, SOMAXCONN);
+
+	freeaddrinfo(server_info);
 	log_trace(logger, "Listo para escuchar a mi cliente");
 
-	return socket_servidor;
+	return fd_escucha;
 }
 
-int esperar_cliente(int socket_servidor)
+int esperar_cliente(int fd_escucha)
 {
 	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
+	//assert(!"no implementado!");
 
 	// Aceptamos un nuevo cliente
 	int socket_cliente;
@@ -42,16 +48,20 @@ int esperar_cliente(int socket_servidor)
 	return socket_cliente;
 }
 
-int recibir_operacion(int socket_cliente)
+int recibir_operacion(int fd_conexion)
 {
-	int cod_op;
-	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
-		return cod_op;
-	else
-	{
-		close(socket_cliente);
-		return -1;
-	}
+	size_t bytes;
+
+	int32_t handshake;
+	int32_t resultOk = 0;
+	int32_t resultError = -1;
+
+	bytes = recv(fd_conexion, &handshake, sizeof(int32_t), MSG_WAITALL);
+	if (handshake == 1) {
+		bytes = send(fd_conexion, &resultOk, sizeof(int32_t), 0);
+	} else {
+		bytes = send(fd_conexion, &resultError, sizeof(int32_t), 0);
+}
 }
 
 void* recibir_buffer(int* size, int socket_cliente)
