@@ -38,7 +38,7 @@ int main(void)
 	//log_info(logger, valor);
 	/* ---------------- LEER DE CONSOLA ---------------- */
 
-	leer_consola(logger);
+	//leer_consola(logger);
 
 	/*---------------------------------------------------PARTE 3-------------------------------------------------------------*/
 
@@ -50,8 +50,8 @@ int main(void)
 	// Enviamos al servidor el valor de CLAVE como mensaje
 
 	// Armamos y enviamos el paquete
-	paquete(conexion);
-
+	paquete(conexion, logger);
+	
 	terminar_programa(conexion, logger, config);
 
 	/*---------------------------------------------------PARTE 5-------------------------------------------------------------*/
@@ -118,97 +118,45 @@ void leer_consola(t_log* logger)
 	
 }
 
-/*void paquete(int conexion)
+void paquete(int conexion, t_log* logger)
 {
-	// Ahora toca lo divertido!
-	char* leido;
-	t_paquete* paquete;
-
-	// Leemos y esta vez agregamos las lineas al paquete
-
-
-	// ¡No te olvides de liberar las líneas y el paquete antes de regresar!
-	
-}*/
-
-void paquete(int conexion)
-{
-    // Paso 1: Crear un nuevo paquete
-    t_paquete* paquete = malloc(sizeof(t_paquete));
-    if (paquete == NULL) {
-        perror("Error al crear el paquete");
-        return; // Manejo de errores
-    }
-
-    // Definimos el código de operación para el paquete
-    paquete->codigo_operacion = PAQUETE; // Asegúrate de tener definido PAQUETE
-
-    // Inicializamos el buffer
-    paquete->buffer = malloc(sizeof(t_buffer));
-    if (paquete->buffer == NULL) {
-        perror("Error al crear el buffer");
-        free(paquete);
-        return; // Manejo de errores
-    }
-    paquete->buffer->size = 0;
-    paquete->buffer->stream = NULL;
-
-    // Paso 2: Leer líneas de la consola
-    while (1) {
-        char* leido = readline("> "); // Leer línea de la consola
-
-        // Si se presiona Enter sin escribir nada, terminamos la lectura
-        if (leido == NULL || strcmp(leido, "") == 0) {
-            free(leido); // Liberar la línea leída
-            break; // Salimos del bucle
-        }
-
-        // Paso 3: Agregar la línea leída al buffer
-        int longitud_leido = strlen(leido) + 1; // +1 para el carácter nulo
-        paquete->buffer->size += longitud_leido; // Actualizamos el tamaño del buffer
-
-        // Reservamos espacio para el nuevo tamaño del buffer
-        paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size);
-        if (paquete->buffer->stream == NULL) {
-            perror("Error al realloc del buffer");
-            free(leido); // Liberar leido en caso de error
-            free(paquete->buffer);
-            free(paquete);
-            return; // Manejo de errores
-        }
-
-        // Agregamos la línea leída al final del buffer
-        memcpy((char*)paquete->buffer->stream + (paquete->buffer->size - longitud_leido), leido, longitud_leido);
-
-        // Liberamos la memoria de leido después de usarlo
-        free(leido);
-    }
-
-    // Aquí enviarías el paquete al servidor
-    enviar_paquete(conexion, paquete); // Asegúrate de tener la función enviar_paquete definida
-	// Enviar el paquete
-	int bytes_enviados = send(conexion, paquete, sizeof(t_paquete), 0);
-	if (bytes_enviados == -1) {    
-		perror("Error al enviar el paquete");
-		} else {    
-		// Esperar confirmación del servidor    
-		int confirmacion;    recv(conexion, &confirmacion, sizeof(int), 0); 
-		// Lee la confirmación del servidor    
-		if (confirmacion == 1) {        
-			printf("Paquete enviado y recibido correctamente por el servidor\n");    
-	} else {        
-		printf("El servidor no recibió el paquete correctamente\n");    }
-	}
-
-    // Paso 4: Liberar los recursos
-    free(paquete->buffer->stream); // Liberar el contenido del buffer
-    free(paquete->buffer); // Liberar el buffer
-    free(paquete); // Liberar el paquete
+    // Paso 1: Crear un nuevo paquete    
+	t_paquete* paquete = crear_paquete();    
+	if (paquete == NULL) {        
+		fprintf(stderr, "Error al crear el paquete.\n");        
+		return; 
+		// Manejo de errores    
+	}    
+	// Paso 2: Leer información del usuario    
+	char* leido;    
+	while (1) {        
+		leido = readline("> "); // Leer línea de la consola        
+		// Si el usuario ingresa una línea vacía, terminamos        
+		if (leido == NULL || strcmp(leido, "") == 0) {            
+			free(leido); // Liberar la línea leída            
+			break; // Salimos del bucle        
+		}        
+	// Paso 3: Agregar la línea leída al paquete        
+	agregar_a_paquete(paquete, leido, strlen(leido) + 1); // +1 para el carácter nulo        
+	// Liberar la memoria de leido después de usarlo        
+	free(leido);    
+	}    
+	// Paso 4: Enviar el paquete a través de la conexión  
+	log_info(logger, "Preparándose para enviar el paquete...");  
+	enviar_paquete(paquete, conexion, logger);  
+	 
+	// Paso 5: Eliminar el paquete y liberar la memoria  
+	log_info(logger, "Preparándose para eliminar el paquete...");   
+	eliminar_paquete(paquete);
 }
+
 
 void terminar_programa(int conexion, t_log* logger, t_config* config){
 	/* Y por ultimo, hay que liberar lo que utilizamos (conexion, log y config) 
 	  con las funciones de las commons y del TP mencionadas en el enunciado */
 	log_destroy (logger);
 	config_destroy (config);
+	if (conexion != -1) {        
+		liberar_conexion(conexion);    
+	}
 }

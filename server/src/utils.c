@@ -64,6 +64,7 @@ int recibir_operacion(int fd_conexion)
 }
 }
 
+
 void* recibir_buffer(int* size, int socket_cliente)
 {
 	void * buffer;
